@@ -3,6 +3,7 @@
 It allows you to create a template for the [vmware-iso builder](https://www.packer.io/docs/builders/vmware-iso.html).
 
 - At the moment **keep_registered** option is **required** to be set as **true**
+- Insecure connection by default
 
 Go ahead and download a pre-built Freezer binary for your operating system from [Releases page](https://github.com/bennu/packer-post-processor-freezer/releases)
 Then you need choose one folder for the magic to begins:
