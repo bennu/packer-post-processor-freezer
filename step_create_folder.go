@@ -35,7 +35,6 @@ func (s *StepCreateFolder) Run(state multistep.StateBag) multistep.StepAction {
 
 		for {
 			_, err := f.Folder(ctx, filepath.ToSlash(filepath.Join(base, path)))
-
 			if err != nil {
 
 				root, folder = filepath.Split(path)
@@ -52,12 +51,12 @@ func (s *StepCreateFolder) Run(state multistep.StateBag) multistep.StepAction {
 
 		for i := len(folders) - 1; i >= 0; i-- {
 			folder, err := f.Folder(ctx, filepath.ToSlash(filepath.Join(base, "/", root)))
-
 			if err != nil {
 				state.Put("error", err)
 				ui.Error(err.Error())
 				return multistep.ActionHalt
 			}
+
 			ui.Message(fmt.Sprintf("Creating folder: %v", folders[i]))
 
 			if _, err = folder.CreateFolder(ctx, folders[i]); err != nil {

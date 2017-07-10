@@ -2,9 +2,6 @@
 
 It allows you to create a template for the [vmware-iso builder](https://www.packer.io/docs/builders/vmware-iso.html).
 
-- At the moment **keep_registered** option is **required** to be set as **true**
-- Insecure connection by default
-
 Go ahead and download a pre-built Freezer binary for your operating system from [Releases page](https://github.com/bennu/packer-post-processor-freezer/releases)
 Then you need choose one folder for the magic to begins:
 
@@ -22,11 +19,14 @@ For more details check the [install plugins page](https://www.packer.io/docs/ext
 {  
    "type":"freezer",
    "host":"{{user `host`}}",
+   "insecure": true,
    "username":"{{user `username`}}",
    "password":"{{user `password`}}",
    "vm_name":"{{user `vm_name`}}"
 }
 ```
+
+* `insecure` - If it's true Skip verification of server certificate. Default is false.   
 
 ## Configuration Reference
 
@@ -40,6 +40,7 @@ Optional parameters:
 {  
    "type":"freezer",
    "host":"vcenter.local",
+   "insecure": true,
    "username":"root",
    "password":"sssh_is_a_secret",
    "datacenter":"murlock",
@@ -48,7 +49,3 @@ Optional parameters:
 }
 ```
 
-### Todos
-
-- Eliminate keep_registered dependency
-- Fix/Review the waiting time for VMWare vSphere

@@ -4,17 +4,25 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+	"strings"
+	"context"
 
 	"github.com/hashicorp/packer/common"
 	"github.com/hashicorp/packer/helper/config"
 	"github.com/hashicorp/packer/packer"
 	"github.com/hashicorp/packer/template/interpolate"
 	"github.com/mitchellh/multistep"
+	"github.com/vmware/govmomi"
 )
+
+var builtins = map[string]string{
+	"mitchellh.vmware-esx": "vmware",
+}
 
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
 	Host                string `mapstructure:"host"`
+	Insecure            bool   `mapstructure:"insecure"`
 	Username            string `mapstructure:"username"`
 	Password            string `mapstructure:"password"`
 	Datacenter          string `mapstructure:"datacenter"`
@@ -43,13 +51,13 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 	}
 
 	errs := new(packer.MultiError)
-	templates := map[string]*string{
+	vc := map[string]*string{
 		"host":     &p.config.Host,
 		"username": &p.config.Username,
 		"password": &p.config.Password,
 	}
 
-	for key, ptr := range templates {
+	for key, ptr := range vc {
 		if *ptr == "" {
 			errs = packer.MultiErrorAppend(
 				errs, fmt.Errorf("%s must be set", key))
@@ -68,21 +76,39 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 }
 
 func (p *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (packer.Artifact, bool, error) {
-	state := new(multistep.BasicStateBag)
-	state.Put("ui", ui)
+	if _, ok := builtins[artifact.BuilderId()]; !ok {
+		return nil, false, fmt.Errorf("Unknown artifact type, can't build box: %s", artifact.BuilderId())
+	}
 
-	//FIXME I've trash environment, so I need to wait :(
+	source := ""
+	for _, path := range artifact.Files() {
+		if strings.HasSuffix(path, ".vmx") {
+			source = path
+			break
+		}
+	}
+	//We give a vSphere-ESXI 10s to sync
 	ui.Message("Waiting 10s for VMWare vSphere to start")
 	time.Sleep(10 * time.Second)
 
+	ctx := context.Background()
+	c, err := govmomi.NewClient(ctx, p.url, p.config.Insecure)
+	if err != nil {
+		return artifact, true, fmt.Errorf("Error trying to connect: %s", err)
+	}
+
+	state := new(multistep.BasicStateBag)
+	state.Put("ui", ui)
+	state.Put("context", ctx)
+	state.Put("client", c)
+
 	steps := []multistep.Step{
-		&StepVSphereClient{
+		&StepChooseDatacenter{
 			Datacenter: p.config.Datacenter,
-			VMName:     p.config.VMName,
-			Url:        p.url,
 		},
 		&StepFetchVm{
 			VMName: p.config.VMName,
+			Source: source,
 		},
 		&StepCreateFolder{
 			Folder: p.config.Folder,
@@ -103,7 +129,7 @@ func (p *PostProcessor) PostProcess(ui packer.Ui, artifact packer.Artifact) (pac
 }
 
 func (p *PostProcessor) configureURL() error {
-	sdk, err := url.Parse("https://" + p.config.Host + "/sdk")
+	sdk, err := url.Parse(fmt.Sprintf("https://%v/sdk", p.config.Host))
 
 	if err != nil {
 		return nil

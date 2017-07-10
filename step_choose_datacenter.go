@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"net/url"
 
 	"github.com/hashicorp/packer/packer"
 	"github.com/mitchellh/multistep"
@@ -10,26 +9,17 @@ import (
 	"github.com/vmware/govmomi/find"
 )
 
-type StepVSphereClient struct {
-	Url        *url.URL
+type StepChooseDatacenter struct {
 	Datacenter string
-	VMName     string
 }
 
-func (s *StepVSphereClient) Run(state multistep.StateBag) multistep.StepAction {
+func (s *StepChooseDatacenter) Run(state multistep.StateBag) multistep.StepAction {
 	ui := state.Get("ui").(packer.Ui)
-	ctx := context.Background()
-	cli, err := govmomi.NewClient(ctx, s.Url, true)
-
-	if err != nil {
-		state.Put("error", err)
-		ui.Error(err.Error())
-		return multistep.ActionHalt
-	}
-
+	cli := state.Get("client").(*govmomi.Client)
+	ctx := state.Get("context").(context.Context)
 	finder := find.NewFinder(cli.Client, false)
-	datacenter, err := finder.DatacenterOrDefault(ctx, s.Datacenter)
 
+	datacenter, err := finder.DatacenterOrDefault(ctx, s.Datacenter)
 	if err != nil {
 		state.Put("error", err)
 		ui.Error(err.Error())
@@ -38,11 +28,9 @@ func (s *StepVSphereClient) Run(state multistep.StateBag) multistep.StepAction {
 	}
 
 	finder.SetDatacenter(datacenter)
-
 	state.Put("datacenter", datacenter.Name())
 	state.Put("finder", finder)
-	state.Put("context", ctx)
 	return multistep.ActionContinue
 }
 
-func (s *StepVSphereClient) Cleanup(multistep.StateBag) {}
+func (s *StepChooseDatacenter) Cleanup(multistep.StateBag) {}
