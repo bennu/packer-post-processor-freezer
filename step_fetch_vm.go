@@ -60,8 +60,7 @@ func (s *StepFetchVm) Run(state multistep.StateBag) multistep.StepAction {
 		return multistep.ActionHalt
 	}
 
-	err = task.Wait(ctx)
-	if err != nil {
+	if err = task.Wait(ctx); err != nil {
 		state.Put("error", err)
 		ui.Error(err.Error())
 		return multistep.ActionHalt
