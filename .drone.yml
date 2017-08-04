@@ -1,1 +1,8 @@
 
+pipeline:
+  ip:
+    image: bennu/govc
+    environment:
+      - GOVC_INSECURE=true
+    commands:
+      - ip a
