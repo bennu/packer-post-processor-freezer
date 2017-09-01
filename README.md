@@ -1,3 +1,7 @@
+# Deprecated 
+
+This postprocessor was merged to  [hashicorp/packer](https://github.com/hashicorp/packer).
+ 
 # Freezer is a Packer Postprocessor for VMWare vSphere
 
 It allows you to create a template for the [vmware-iso builder](https://www.packer.io/docs/builders/vmware-iso.html).
